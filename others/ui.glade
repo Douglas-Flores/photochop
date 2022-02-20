@@ -128,7 +128,7 @@
                     </child>
                     <child>
                       <object class="GtkButton" id="mirror_vertical">
-                        <property name="label" translatable="yes">Epelhar Verticalmente</property>
+                        <property name="label" translatable="yes">Espelhar Verticalmente</property>
                         <property name="width-request">170</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
@@ -163,12 +163,12 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton" id="histrogram_button">
+                      <object class="GtkButton" id="histogram_button">
                         <property name="label" translatable="yes">Histograma</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
-                        <signal name="clicked" handler="on_histrogram_button_clicked" swapped="no"/>
+                        <signal name="clicked" handler="on_histogram_button_clicked" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -286,6 +286,20 @@
             <property name="title" translatable="yes">page0</property>
           </packing>
         </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkWindow" id="histogram_window">
+    <property name="name">histogram_window</property>
+    <property name="width-request">1000</property>
+    <property name="height-request">500</property>
+    <property name="can-focus">False</property>
+    <property name="title" translatable="yes">Histograma</property>
+    <child>
+      <object class="GtkDrawingArea" id="histogram_draw">
+        <property name="name">histogram_draw</property>
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
       </object>
     </child>
   </object>

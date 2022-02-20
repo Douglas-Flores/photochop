@@ -22,8 +22,10 @@ typedef struct {
 // Componentes GTK
 GtkBuilder *builder;
 GtkWidget *window;
+GtkWidget *window_histogram;
 GtkWidget *image_picker;
 GtkWidget *tone_quantity;
+GtkWidget *canvas;
 
 // Variáveis globais
 Image original_img;
@@ -238,7 +240,7 @@ void on_quantum_clicked(){
     sprintf(tmp, "%s", gtk_entry_get_text(GTK_ENTRY(tone_quantity)));
     int n = atoi(tmp);
 
-    if (n == 0 || n == nan)
+    if (n == 0 || !n)
         return NULL;
 
     // Tone mapping
@@ -295,7 +297,61 @@ void on_quantum_clicked(){
 }
 
 void on_histogram_button_clicked() {
+    if (isImageLoaded == false)
+        return NULL;
 
+    int rowstride, n_channels;
+    guchar *pixels, *p_row, *p;
+    int histogram_data[256];
+    for (int i = 0; i < 256; i++)
+        histogram_data[i] = 0;
+    
+    n_channels = gdk_pixbuf_get_n_channels(original_img.pixels);
+
+    g_assert (gdk_pixbuf_get_colorspace (original_img.pixels) == GDK_COLORSPACE_RGB);
+    g_assert (gdk_pixbuf_get_bits_per_sample (original_img.pixels) == 8);
+    // reseting manipulated image
+    manipulated_img.pixels = gdk_pixbuf_new_from_file(original_img.name, NULL);
+    if (n_channels == 3){
+        on_greyscale_clicked();
+        g_assert (n_channels == 3);
+    }
+    else if (n_channels == 1)
+        g_assert (n_channels == 1);
+    else {
+        printf("\n[ERROR] Cannot read number of channels from image");
+        return NULL;
+    }
+
+    rowstride = gdk_pixbuf_get_rowstride (manipulated_img.pixels);
+    pixels = gdk_pixbuf_get_pixels (manipulated_img.pixels);
+
+    for (int y = 0; y < manipulated_img.height; y++) {
+        // definindo ponteiro para a linha a ser manipulada
+        p_row = pixels + y * rowstride;
+        // percorrendo a linha
+        for (int x = 0; x < manipulated_img.width; x++){
+            p = p_row + x * n_channels;
+            int index = 0;
+
+            if (p[0] > 255)
+                index = 255;
+            else if (p[0] < 0)
+                index = 0;
+            else
+                index = p[0];
+
+            histogram_data[index]++;
+        }
+    }
+
+    for (int i = 0; i < 256; i++){
+        printf("\n Tom %d: %d", i, histogram_data[i]);
+    }
+
+    gtk_widget_show_all(window_histogram);
+
+    printf("\n[OPERATION] Grayscale Filter");
 }
 
 void on_save_image_clicked() {
@@ -316,6 +372,7 @@ int main(int argc, char **argv) {
     manipulated_img.widget = GTK_WIDGET(gtk_builder_get_object(builder, "preview_image"));
     image_picker = GTK_WIDGET(gtk_builder_get_object(builder, "image_picker"));
     tone_quantity = GTK_WIDGET(gtk_builder_get_object(builder, "tone_quantity"));
+    canvas = GTK_WIDGET(gtk_builder_get_object(builder, "histogram_draw"));
 
     gtk_builder_add_callback_symbols(
         builder,
@@ -332,6 +389,7 @@ int main(int argc, char **argv) {
     gtk_builder_connect_signals(builder, NULL);
 
     window = GTK_WIDGET(gtk_builder_get_object(builder, "main_window"));
+    window_histogram = GTK_WIDGET(gtk_builder_get_object(builder, "histogram_window"));
 
     gtk_widget_show_all(window);
     gtk_main();
