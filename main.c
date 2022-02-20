@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <math.h>
 
+#define WINDOW_WIDTH 428;
+
 typedef struct {
     char *name;
     FILE *file;
@@ -60,10 +62,8 @@ void copy_image() {
 }
 
 void update_preview_image() {
-    preview_pixbuf = gdk_pixbuf_copy(manipulated_img.pixels);
-    
+    preview_pixbuf = gdk_pixbuf_copy(manipulated_img.pixels); 
     preview_pixbuf = gdk_pixbuf_scale_simple(preview_pixbuf, manipulated_img.preview_width, manipulated_img.preview_height, GDK_INTERP_BILINEAR);
-
     gtk_image_set_from_pixbuf(GTK_IMAGE(manipulated_img.widget), preview_pixbuf);
 }
 
@@ -76,6 +76,9 @@ void on_main_window_destroy(GtkWidget *widget, gpointer data) {
 void on_image_picker_file_set(GtkFileChooserButton *f) {
     original_img.name = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(f));
 
+    if (!original_img.name)
+        return NULL;
+
     original_img.pixels = gdk_pixbuf_new_from_file(original_img.name, NULL);
     manipulated_img.pixels = gdk_pixbuf_new_from_file(original_img.name, NULL);
     preview_pixbuf = gdk_pixbuf_new_from_file(original_img.name, NULL);
@@ -84,13 +87,13 @@ void on_image_picker_file_set(GtkFileChooserButton *f) {
     original_img.width = gdk_pixbuf_get_width(original_img.pixels);
     original_img.height = gdk_pixbuf_get_height(original_img.pixels);
     original_img.aspect_ratio = (float)original_img.width / (float)original_img.height;
-    original_img.preview_width = 428;
+    original_img.preview_width = WINDOW_WIDTH;
     original_img.preview_height = original_img.preview_width / original_img.aspect_ratio;
     // defining manipulated image
     manipulated_img.width = gdk_pixbuf_get_width(manipulated_img.pixels);
     manipulated_img.height = gdk_pixbuf_get_height(manipulated_img.pixels);
     manipulated_img.aspect_ratio = (float)manipulated_img.width / (float)manipulated_img.height;
-    manipulated_img.preview_width = 428;
+    manipulated_img.preview_width = WINDOW_WIDTH;
     manipulated_img.preview_height = original_img.preview_width / original_img.aspect_ratio;
     
     preview_pixbuf = gdk_pixbuf_scale_simple(preview_pixbuf, original_img.preview_width, original_img.preview_height, GDK_INTERP_BILINEAR);
@@ -104,6 +107,9 @@ void on_image_picker_file_set(GtkFileChooserButton *f) {
 }
 
 void on_mirror_horizontal_clicked() {
+    if (isImageLoaded == false)
+        return NULL;
+
     int rowstride, n_channels;
     guchar *pixels, *p_row, *p;
     guchar *row_buffer;
@@ -118,7 +124,7 @@ void on_mirror_horizontal_clicked() {
     rowstride = gdk_pixbuf_get_rowstride (manipulated_img.pixels);
     pixels = gdk_pixbuf_get_pixels (manipulated_img.pixels);
 
-    for (int y=0; y<manipulated_img.height; y++) {
+    for (int y = 0; y < manipulated_img.height; y++) {
         // definindo ponteiro para a linha a ser invertida
         p_row = pixels + y * rowstride;
         // criando uma cópia da linha em um buffer
@@ -142,8 +148,9 @@ void on_mirror_horizontal_clicked() {
 }
 
 void on_mirror_vertical_clicked() {
-    int width = gdk_pixbuf_get_width(manipulated_img.pixels);
-    int height = gdk_pixbuf_get_height(manipulated_img.pixels);
+    if (isImageLoaded == false)
+        return NULL;
+
     int rowstride, n_channels;
     guchar *pixels, *p_row, *p;
     guchar *row_buffer;
@@ -159,16 +166,16 @@ void on_mirror_vertical_clicked() {
     rowstride = gdk_pixbuf_get_rowstride (manipulated_img.pixels);
     pixels = gdk_pixbuf_get_pixels (manipulated_img.pixels);
 
-    for (int y=0; y < (int)floor(height/2); y++) {
+    for (int y = 0; y < (int)floor(manipulated_img.height/2); y++) {
         // definindo ponteiro para a linha atual
         p_row = pixels + y * rowstride;
         // criando uma cópia da linha em um buffer
         row_buffer = malloc(rowstride*n_channels);
         memcpy(row_buffer, p_row, rowstride*n_channels);
         // pegando linha espelhada
-        p_mirror_row = pixels + (height-y-1) * rowstride;
+        p_mirror_row = pixels + (manipulated_img.height-y-1) * rowstride;
         // fazendo a troca
-        for (int x=0; x < width; x++) {
+        for (int x=0; x < manipulated_img.width; x++) {
             p = p_row + x * n_channels;
             p_mirror = p_mirror_row + x * n_channels;
             p_buffer = row_buffer + x * n_channels;
@@ -189,8 +196,9 @@ void on_mirror_vertical_clicked() {
 }
 
 void on_greyscale_clicked() {
-    int width = gdk_pixbuf_get_width(manipulated_img.pixels);
-    int height = gdk_pixbuf_get_height(manipulated_img.pixels);
+    if (isImageLoaded == false)
+        return NULL;
+
     int rowstride, n_channels;
     guchar *pixels, *p_row, *p;
     
@@ -203,17 +211,16 @@ void on_greyscale_clicked() {
     rowstride = gdk_pixbuf_get_rowstride (manipulated_img.pixels);
     pixels = gdk_pixbuf_get_pixels (manipulated_img.pixels);
 
-    for (int y=0; y<height; y++) {
+    for (int y = 0; y < manipulated_img.height; y++) {
         // definindo ponteiro para a linha a ser manipulada
         p_row = pixels + y * rowstride;
         // percorrendo a linha
-        for (int x=0; x<width;x++){
+        for (int x = 0; x < manipulated_img.width; x++){
             p = p_row + x * n_channels;
             guchar l = 0.299*p[0] + 0.587*p[1] + 0.114*p[2];
             p[0] = l;
             p[1] = l;
             p[2] = l;
-            
         }
     }
 
@@ -223,10 +230,16 @@ void on_greyscale_clicked() {
 }
 
 void on_quantum_clicked(){
+    if (isImageLoaded == false)
+        return NULL;
+
     // retrieving number of tones
     char tmp[4];
     sprintf(tmp, "%s", gtk_entry_get_text(GTK_ENTRY(tone_quantity)));
     int n = atoi(tmp);
+
+    if (n == 0 || n == nan)
+        return NULL;
 
     // Tone mapping
     guchar t1=0, t2=0;
@@ -261,7 +274,6 @@ void on_quantum_clicked(){
     tam_int = t2 - t1 + 1;
 
     if(n < tam_int){
-        printf("\norra");
         int tb = (int)(tam_int/n);
         for (int y=0; y<height; y++) {
             p_row = pixels + y * rowstride;
