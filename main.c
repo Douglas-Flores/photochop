@@ -296,6 +296,24 @@ void on_quantum_clicked(){
 
 }
 
+gboolean draw_callback (GtkWidget *widget, cairo_t *cr, gpointer data) {
+    guint width = 1000, height = 500;
+    GdkRGBA color;
+    GtkStyleContext *context;
+
+    context = gtk_widget_get_style_context(widget);
+
+    gtk_render_background(context, cr, 1, 1, width, height);
+    cairo_arc(cr, width / 2.0, height / 2.0, MIN (width, height) / 2.0, 0, 2*G_PI);
+
+    gtk_style_context_get_color(context, gtk_style_context_get_state(context), &color);
+    gdk_cairo_set_source_rgba(cr, &color);
+
+    cairo_fill(cr);
+
+    return FALSE;
+}
+
 void on_histogram_button_clicked() {
     if (isImageLoaded == false)
         return NULL;
@@ -351,7 +369,9 @@ void on_histogram_button_clicked() {
 
     gtk_widget_show_all(window_histogram);
 
-    printf("\n[OPERATION] Grayscale Filter");
+    printf("\n[FUNCTION] Show Histogram");
+
+    g_signal_connect (G_OBJECT(canvas), "draw", G_CALLBACK(draw_callback), NULL);
 }
 
 void on_save_image_clicked() {
