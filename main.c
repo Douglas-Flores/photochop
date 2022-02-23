@@ -299,8 +299,6 @@ void on_quantum_clicked(){
 
 gboolean draw_callback (GtkWidget *widget, cairo_t *cr, gpointer data) {
     guint width = 1000, height = 500;
-    //GdkRGBA color;
-    GtkStyleContext *context;
 
     // Desenhando eixo y
     cairo_set_source_rgb(cr, 0, 0, 0);
@@ -320,11 +318,10 @@ gboolean draw_callback (GtkWidget *widget, cairo_t *cr, gpointer data) {
     float spacing_x = (width*0.95 - 20.0) / 256.0;
     int max_histogram = 0;
     // Pegando o valor máximo do histograma
-    for(int i = 0; i < 256; i++){
-        printf("\n valor %d: %d, max=%d",i,histogram_data[i],max_histogram);
+    for(int i = 0; i < 256; i++)
         if (histogram_data[i] > max_histogram)
             max_histogram = histogram_data[i];
-    }
+
     // Calculando a escala em pixels
     float base_y = height - 20;
     float top_y = height*0.05;
@@ -335,7 +332,6 @@ gboolean draw_callback (GtkWidget *widget, cairo_t *cr, gpointer data) {
         float x = 21.0 + spacing_x * i;
         float data_score = 1 - ((float)histogram_data[i] / (float)max_histogram);
         int top = top_y + data_score * range_y;
-        printf("\ntop: %.2f", data_score);
         cairo_move_to(cr, x, (guint)top);
         cairo_line_to(cr, x, (guint)base_y);
         cairo_stroke(cr);
@@ -347,6 +343,8 @@ gboolean draw_callback (GtkWidget *widget, cairo_t *cr, gpointer data) {
 void on_histogram_button_clicked() {
     if (isImageLoaded == false)
         return NULL;
+
+    canvas = GTK_WIDGET(gtk_builder_get_object(builder, "histogram_draw"));
 
     int rowstride, n_channels;
     guchar *pixels, *p_row, *p;
@@ -408,6 +406,10 @@ void on_save_image_clicked() {
     printf("\n[SYS] Saved Image");
 }
 
+void on_histogram_window_destroy() {
+    gtk_widget_destroy(canvas);
+}
+
 int main(int argc, char **argv) {
 
     // Inicializando componentes do GTK
@@ -417,7 +419,6 @@ int main(int argc, char **argv) {
     manipulated_img.widget = GTK_WIDGET(gtk_builder_get_object(builder, "preview_image"));
     image_picker = GTK_WIDGET(gtk_builder_get_object(builder, "image_picker"));
     tone_quantity = GTK_WIDGET(gtk_builder_get_object(builder, "tone_quantity"));
-    canvas = GTK_WIDGET(gtk_builder_get_object(builder, "histogram_draw"));
 
     gtk_builder_add_callback_symbols(
         builder,
@@ -429,6 +430,7 @@ int main(int argc, char **argv) {
         "on_quantum_clicked", G_CALLBACK(on_quantum_clicked),
         "on_save_image_clicked", G_CALLBACK(on_save_image_clicked),
         "on_histogram_button_clicked", G_CALLBACK(on_histogram_button_clicked),
+        "on_histogram_window_destroy", G_CALLBACK(on_histogram_window_destroy),
         NULL
     );
     gtk_builder_connect_signals(builder, NULL);
