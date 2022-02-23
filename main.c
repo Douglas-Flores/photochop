@@ -32,6 +32,7 @@ Image original_img;
 Image manipulated_img;
 bool isImageLoaded = false;
 GdkPixbuf *preview_pixbuf;
+int histogram_data[256];
 
 void close_files(){
     if (isImageLoaded == true) {
@@ -298,18 +299,47 @@ void on_quantum_clicked(){
 
 gboolean draw_callback (GtkWidget *widget, cairo_t *cr, gpointer data) {
     guint width = 1000, height = 500;
-    GdkRGBA color;
+    //GdkRGBA color;
     GtkStyleContext *context;
 
-    context = gtk_widget_get_style_context(widget);
+    // Desenhando eixo y
+    cairo_set_source_rgb(cr, 0, 0, 0);
+    cairo_set_line_width(cr, 1);
+    cairo_move_to(cr, 20, floor(height*0.05));
+    cairo_line_to(cr, 20, height - 20);
+    cairo_stroke(cr);
 
-    gtk_render_background(context, cr, 1, 1, width, height);
-    cairo_arc(cr, width / 2.0, height / 2.0, MIN (width, height) / 2.0, 0, 2*G_PI);
+    // Desenhando eixo x
+    cairo_move_to(cr, 20, height - 20);
+    cairo_line_to(cr, floor(width*0.95), height - 20);
+    cairo_stroke(cr);
 
-    gtk_style_context_get_color(context, gtk_style_context_get_state(context), &color);
-    gdk_cairo_set_source_rgba(cr, &color);
+    // Desenhando o histograma
+    cairo_set_source_rgb(cr, 0.5, 0.03, 0.03);
+    cairo_set_line_width(cr, 2);
+    float spacing_x = (width*0.95 - 20.0) / 256.0;
+    int max_histogram = 0;
+    // Pegando o valor máximo do histograma
+    for(int i = 0; i < 256; i++){
+        printf("\n valor %d: %d, max=%d",i,histogram_data[i],max_histogram);
+        if (histogram_data[i] > max_histogram)
+            max_histogram = histogram_data[i];
+    }
+    // Calculando a escala em pixels
+    float base_y = height - 20;
+    float top_y = height*0.05;
+    float range_y = base_y - top_y;
 
-    cairo_fill(cr);
+    // Imprimindo os dados na tela
+    for(int i = 0; i < 256; i++){
+        float x = 21.0 + spacing_x * i;
+        float data_score = 1 - ((float)histogram_data[i] / (float)max_histogram);
+        int top = top_y + data_score * range_y;
+        printf("\ntop: %.2f", data_score);
+        cairo_move_to(cr, x, (guint)top);
+        cairo_line_to(cr, x, (guint)base_y);
+        cairo_stroke(cr);
+    }
 
     return FALSE;
 }
@@ -320,7 +350,6 @@ void on_histogram_button_clicked() {
 
     int rowstride, n_channels;
     guchar *pixels, *p_row, *p;
-    int histogram_data[256];
     for (int i = 0; i < 256; i++)
         histogram_data[i] = 0;
     
@@ -361,10 +390,6 @@ void on_histogram_button_clicked() {
 
             histogram_data[index]++;
         }
-    }
-
-    for (int i = 0; i < 256; i++){
-        printf("\n Tom %d: %d", i, histogram_data[i]);
     }
 
     gtk_widget_show_all(window_histogram);
