@@ -2,6 +2,12 @@
 <!-- Generated with glade 3.38.2 -->
 <interface>
   <requires lib="gtk+" version="3.24"/>
+  <object class="GtkAdjustment" id="adjustment1">
+    <property name="lower">-255</property>
+    <property name="upper">255</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
   <object class="GtkFileFilter" id="filefilter1">
     <mime-types>
       <mime-type>.jpg</mime-type>
@@ -216,7 +222,7 @@
                   </packing>
                 </child>
                 <child>
-                  <!-- n-columns=3 n-rows=1 -->
+                  <!-- n-columns=3 n-rows=2 -->
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -232,7 +238,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">0</property>
+                        <property name="top-attach">1</property>
                       </packing>
                     </child>
                     <child>
@@ -248,7 +254,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">2</property>
-                        <property name="top-attach">0</property>
+                        <property name="top-attach">1</property>
                       </packing>
                     </child>
                     <child>
@@ -263,8 +269,38 @@
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Brilho</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
                         <property name="top-attach">0</property>
                       </packing>
+                    </child>
+                    <child>
+                      <object class="GtkScale" id="brightness_scale">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="adjustment">adjustment1</property>
+                        <property name="lower-stepper-sensitivity">on</property>
+                        <property name="upper-stepper-sensitivity">on</property>
+                        <property name="fill-level">255</property>
+                        <property name="round-digits">1</property>
+                        <signal name="value-changed" handler="on_brightness_scale_value_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                   </object>
                   <packing>
@@ -295,6 +331,7 @@
     <property name="height-request">500</property>
     <property name="can-focus">False</property>
     <property name="title" translatable="yes">Histograma</property>
+    <signal name="destroy" handler="on_histogram_window_destroy" swapped="no"/>
     <child>
       <object class="GtkDrawingArea" id="histogram_draw">
         <property name="name">histogram_draw</property>
