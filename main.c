@@ -32,6 +32,7 @@ GtkAdjustment *contrast_adjustment;
 // Variáveis globais
 Image original_img;
 Image manipulated_img;
+Image buffer_img;
 bool isImageLoaded = false;
 GdkPixbuf *preview_pixbuf;
 int histogram_data[256];
@@ -572,6 +573,160 @@ void on_histogram_window_destroy() {
     gtk_widget_destroy(canvas);
 }
 
+void on_clock_wise_clicked() {
+    if (isImageLoaded == false)
+        return NULL;
+    
+    // preparando o buffer ---------------------
+    buffer_img = manipulated_img;
+    buffer_img.height = manipulated_img.width;
+    buffer_img.width = manipulated_img.height;
+    buffer_img.aspect_ratio = 1 / buffer_img.aspect_ratio;
+    buffer_img.preview_height = buffer_img.preview_width / buffer_img.aspect_ratio;
+    buffer_img.pixels = gdk_pixbuf_new(
+        gdk_pixbuf_get_colorspace (manipulated_img.pixels),
+        false,
+        8,
+        buffer_img.width,
+        buffer_img.height
+    );
+    // -----------------------------------------
+
+    // preparando acesso ao pixels -------------------------------------------------------
+    int rowstride, n_channels;
+    guchar *pixels, *row, *p;
+    n_channels = gdk_pixbuf_get_n_channels(manipulated_img.pixels);
+    g_assert (gdk_pixbuf_get_colorspace (manipulated_img.pixels) == GDK_COLORSPACE_RGB);
+    g_assert (gdk_pixbuf_get_bits_per_sample (manipulated_img.pixels) == 8);
+    g_assert (n_channels == 3);
+    rowstride = gdk_pixbuf_get_rowstride (manipulated_img.pixels);
+    pixels = gdk_pixbuf_get_pixels (manipulated_img.pixels);
+    // ----------------------------------------------------------------------------------
+
+    // preparando acesso ao buffer ------------------------------------------------------
+    int buffer_rowstride;
+    guchar *buffer_pixels, *buffer_row, *buffer_pixel;
+    g_assert (gdk_pixbuf_get_colorspace (buffer_img.pixels) == GDK_COLORSPACE_RGB);
+    g_assert (gdk_pixbuf_get_bits_per_sample (buffer_img.pixels) == 8);
+    g_assert (n_channels == 3);
+    buffer_rowstride = gdk_pixbuf_get_rowstride (buffer_img.pixels);
+    buffer_pixels = gdk_pixbuf_get_pixels (buffer_img.pixels);
+    // ----------------------------------------------------------------------------------
+
+    for (int y = 0; y < manipulated_img.height; y++) {
+        // definindo ponteiro para a linha a ser rotacionada
+        row = pixels + y * rowstride;
+        // loop de rotação
+        for (int x = 0; x < manipulated_img.width; x++){
+            p = row + x * n_channels;
+            buffer_row = buffer_pixels + x * buffer_rowstride;
+            buffer_pixel = buffer_row + (buffer_img.width - 1 - y) * n_channels;
+            buffer_pixel[0] = p[0];
+            buffer_pixel[1] = p[1];
+            buffer_pixel[2] = p[2];
+        }
+    }
+    manipulated_img = buffer_img;
+    printf("\n width: %d \n height: %d\n aspect_ratio: %.2f", manipulated_img.width, manipulated_img.height, manipulated_img.aspect_ratio);
+    update_preview_image();
+    printf("\n[OPERATION] Clockwise Rotation");
+}
+
+void on_counter_clock_wise_button_clicked() {
+    if (isImageLoaded == false)
+        return NULL;
+    
+    // preparando o buffer ---------------------
+    buffer_img = manipulated_img;
+    buffer_img.height = manipulated_img.width;
+    buffer_img.width = manipulated_img.height;
+    buffer_img.aspect_ratio = 1 / buffer_img.aspect_ratio;
+    buffer_img.preview_height = buffer_img.preview_width / buffer_img.aspect_ratio;
+    buffer_img.pixels = gdk_pixbuf_new(
+        gdk_pixbuf_get_colorspace (manipulated_img.pixels),
+        false,
+        8,
+        buffer_img.width,
+        buffer_img.height
+    );
+    // -----------------------------------------
+
+    // preparando acesso ao pixels -------------------------------------------------------
+    int rowstride, n_channels;
+    guchar *pixels, *row, *p;
+    n_channels = gdk_pixbuf_get_n_channels(manipulated_img.pixels);
+    g_assert (gdk_pixbuf_get_colorspace (manipulated_img.pixels) == GDK_COLORSPACE_RGB);
+    g_assert (gdk_pixbuf_get_bits_per_sample (manipulated_img.pixels) == 8);
+    g_assert (n_channels == 3);
+    rowstride = gdk_pixbuf_get_rowstride (manipulated_img.pixels);
+    pixels = gdk_pixbuf_get_pixels (manipulated_img.pixels);
+    // ----------------------------------------------------------------------------------
+
+    // preparando acesso ao buffer ------------------------------------------------------
+    int buffer_rowstride;
+    guchar *buffer_pixels, *buffer_row, *buffer_pixel;
+    g_assert (gdk_pixbuf_get_colorspace (buffer_img.pixels) == GDK_COLORSPACE_RGB);
+    g_assert (gdk_pixbuf_get_bits_per_sample (buffer_img.pixels) == 8);
+    g_assert (n_channels == 3);
+    buffer_rowstride = gdk_pixbuf_get_rowstride (buffer_img.pixels);
+    buffer_pixels = gdk_pixbuf_get_pixels (buffer_img.pixels);
+    // ----------------------------------------------------------------------------------
+
+    for (int y = manipulated_img.height-1; y >= 0; y--) {
+        // definindo ponteiro para a linha a ser rotacionada
+        row = pixels + y * rowstride;
+        // loop de rotação
+        for (int x = 0; x < manipulated_img.width; x++){
+            p = row + x * n_channels;
+            buffer_row = buffer_pixels + (manipulated_img.width - x - 1) * buffer_rowstride;
+            buffer_pixel = buffer_row + (y) * n_channels;
+            buffer_pixel[0] = p[0];
+            buffer_pixel[1] = p[1];
+            buffer_pixel[2] = p[2];
+        }
+    }
+    manipulated_img = buffer_img;
+    printf("\n width: %d \n height: %d\n aspect_ratio: %.2f", manipulated_img.width, manipulated_img.height, manipulated_img.aspect_ratio);
+    update_preview_image();
+    printf("\n[OPERATION] Counterclockwise Rotation");
+}
+
+void on_zoom_in_button_clicked() {
+    printf("\n[OPERATION] Zoom In");
+}
+
+void on_zoom_out_button_clicked() {
+    printf("\n[OPERATION] Zoom Out");
+}
+
+void on_gaussian_button_clicked() {
+    printf("\n[OPERATION] Gaussian Filter");
+}
+
+void on_laplacian_button_clicked() {
+    printf("\n[OPERATION] Laplacian Filter");
+}
+
+void on_prewitt_hx_button_clicked() {
+    printf("\n[OPERATION] Prewitt Hx");
+}
+
+void on_prewitt_hy_button_clicked() {
+    printf("\n[OPERATION] Prewitt Hy");
+}
+
+void on_high_pass_button_clicked() {
+    printf("\n[OPERATION] High Pass");
+}
+
+void on_sobel_hx_button_clicked() {
+    printf("\n[OPERATION] Sobel Hx");
+}
+
+void on_sobel_hy_button_clicked() {
+    printf("\n[OPERATION] Sobel Hx");
+}
+
 int main(int argc, char **argv) {
 
     // Inicializando componentes do GTK
@@ -598,6 +753,17 @@ int main(int argc, char **argv) {
         "on_brightness_adjustment_value_changed", G_CALLBACK(on_brigthness_change),
         "on_negative_button_clicked", G_CALLBACK(on_negative_clicked),
         "on_contrast_adjustment_value_changed", G_CALLBACK(on_contrast_change),
+        "on_clock_wise_button_clicked", G_CALLBACK(on_clock_wise_clicked),
+        "on_counterclock_wise_button_clicked", G_CALLBACK(on_counter_clock_wise_button_clicked),
+        "on_zoom_in_button_clicked", G_CALLBACK(on_zoom_in_button_clicked),
+        "on_zoom_out_button_clicked", G_CALLBACK(on_zoom_out_button_clicked),
+        "on_gaussian_button_clicked", G_CALLBACK(on_gaussian_button_clicked),
+        "on_laplacian_button_clicked", G_CALLBACK(on_laplacian_button_clicked),
+        "on_prewitt_hx_button_clicked", G_CALLBACK(on_prewitt_hx_button_clicked),
+        "on_prewitt_hy_button_clicked", G_CALLBACK(on_prewitt_hy_button_clicked),
+        "on_high_pass_button_clicked", G_CALLBACK(on_high_pass_button_clicked),
+        "on_sobel_hx_button_clicked", G_CALLBACK(on_sobel_hx_button_clicked),
+        "on_sobel_hy_button_clicked", G_CALLBACK(on_sobel_hy_button_clicked),
         NULL
     );
     gtk_builder_connect_signals(builder, NULL);
