@@ -27,6 +27,7 @@ GtkWidget *image_picker;
 GtkWidget *tone_quantity;
 GtkWidget *canvas;
 GtkAdjustment *brightness_adjustment;
+GtkAdjustment *contrast_adjustment;
 
 // Variáveis globais
 Image original_img;
@@ -35,6 +36,7 @@ bool isImageLoaded = false;
 GdkPixbuf *preview_pixbuf;
 int histogram_data[256];
 int brightness_level = 0;
+float contrast_level = 1;
 
 void close_files(){
     if (isImageLoaded == true) {
@@ -82,7 +84,9 @@ void on_image_picker_file_set(GtkFileChooserButton *f) {
     original_img.name = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(f));
 
     gtk_adjustment_set_value(brightness_adjustment, 0);
+    gtk_adjustment_set_value(contrast_adjustment, 1);
     brightness_level = 0;
+    contrast_level = 1;
 
     if (!original_img.name)
         return NULL;
@@ -210,7 +214,6 @@ void on_brigthness_change() {
     int brightness_adjustment_value = gtk_adjustment_get_value(brightness_adjustment);
     brightness_adjustment_value = brightness_adjustment_value - brightness_level;
     brightness_level = gtk_adjustment_get_value(brightness_adjustment);
-    printf("\n Valor %d", brightness_level);
     
     if (brightness_adjustment_value > 255 || brightness_adjustment_value < -255){
         printf("\n[OPERATION] Brightness \n [ERROR] Invalid brightness value");
@@ -265,6 +268,96 @@ void on_brigthness_change() {
     update_preview_image();
 
     printf("\n[OPERATION] Brightness");
+}
+
+void on_contrast_change() {
+    if (isImageLoaded == false)
+        return NULL;
+
+    float contrast_adjustment_value = gtk_adjustment_get_value(contrast_adjustment);
+    contrast_adjustment_value = contrast_adjustment_value * (1 / contrast_level);
+    contrast_level = gtk_adjustment_get_value(contrast_adjustment);
+    
+    if (contrast_adjustment_value > 255 || contrast_adjustment_value < 0){
+        printf("\n[OPERATION] Contrast \n [ERROR] Invalid contrast value");
+        return NULL;
+    }
+
+    int rowstride, n_channels;
+    guchar *pixels, *p_row, *p;
+    
+    n_channels = gdk_pixbuf_get_n_channels(manipulated_img.pixels);
+
+    g_assert (gdk_pixbuf_get_colorspace (manipulated_img.pixels) == GDK_COLORSPACE_RGB);
+    g_assert (gdk_pixbuf_get_bits_per_sample (manipulated_img.pixels) == 8);
+    g_assert (n_channels == 3);
+
+    rowstride = gdk_pixbuf_get_rowstride (manipulated_img.pixels);
+    pixels = gdk_pixbuf_get_pixels (manipulated_img.pixels);
+
+    for (int y = 0; y < manipulated_img.height; y++) {
+        // definindo ponteiro para a linha atual
+        p_row = pixels + y * rowstride;
+        // fazendo a troca
+        for (int x=0; x < manipulated_img.width; x++) {
+            p = p_row + x * n_channels;
+            uint8_t new_value = (uint8_t) p[0] * contrast_adjustment_value;
+
+            if (contrast_adjustment_value > 1 && new_value < p[0])
+                p[0] = 255;
+            else
+                p[0] = new_value;
+
+            new_value = (uint8_t) p[1] * contrast_adjustment_value;
+            if (contrast_adjustment_value > 1 && new_value < p[1])
+                p[1] = 255;
+            else
+                p[1] = new_value;
+
+            new_value = (uint8_t) p[2] * contrast_adjustment_value;
+            if (contrast_adjustment_value > 1 && new_value < p[2])
+                p[2] = 255;
+            else
+                p[2] = new_value;
+        }
+    }
+
+    update_preview_image();
+
+    printf("\n[OPERATION] Contrast");
+}
+
+void on_negative_clicked() {
+    if (isImageLoaded == false)
+        return NULL;
+
+    int rowstride, n_channels;
+    guchar *pixels, *p_row, *p;
+    
+    n_channels = gdk_pixbuf_get_n_channels(manipulated_img.pixels);
+
+    g_assert (gdk_pixbuf_get_colorspace (manipulated_img.pixels) == GDK_COLORSPACE_RGB);
+    g_assert (gdk_pixbuf_get_bits_per_sample (manipulated_img.pixels) == 8);
+    g_assert (n_channels == 3);
+
+    rowstride = gdk_pixbuf_get_rowstride (manipulated_img.pixels);
+    pixels = gdk_pixbuf_get_pixels (manipulated_img.pixels);
+
+    for (int y = 0; y < manipulated_img.height; y++) {
+        // definindo ponteiro para a linha atual
+        p_row = pixels + y * rowstride;
+        // fazendo a troca
+        for (int x=0; x < manipulated_img.width; x++) {
+            p = p_row + x * n_channels;
+            p[0] = (uint8_t) 255 - (uint8_t) p[0];
+            p[1] = (uint8_t) 255 - (uint8_t) p[1];
+            p[2] = (uint8_t) 255 - (uint8_t) p[2];
+        }
+    }
+
+    update_preview_image();
+
+    printf("\n[OPERATION] Negative");
 }
 
 void on_greyscale_clicked() {
@@ -489,6 +582,7 @@ int main(int argc, char **argv) {
     image_picker = GTK_WIDGET(gtk_builder_get_object(builder, "image_picker"));
     tone_quantity = GTK_WIDGET(gtk_builder_get_object(builder, "tone_quantity"));
     brightness_adjustment = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "brightness_adjustment"));
+    contrast_adjustment = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "contrast_adjustment"));
 
     gtk_builder_add_callback_symbols(
         builder,
@@ -502,6 +596,8 @@ int main(int argc, char **argv) {
         "on_histogram_button_clicked", G_CALLBACK(on_histogram_button_clicked),
         "on_histogram_window_destroy", G_CALLBACK(on_histogram_window_destroy),
         "on_brightness_adjustment_value_changed", G_CALLBACK(on_brigthness_change),
+        "on_negative_button_clicked", G_CALLBACK(on_negative_clicked),
+        "on_contrast_adjustment_value_changed", G_CALLBACK(on_contrast_change),
         NULL
     );
     gtk_builder_connect_signals(builder, NULL);

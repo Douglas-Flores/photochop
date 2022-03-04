@@ -9,6 +9,13 @@
     <property name="page-increment">10</property>
     <signal name="value-changed" handler="on_brightness_adjustment_value_changed" swapped="no"/>
   </object>
+  <object class="GtkAdjustment" id="contrast_adjustment">
+    <property name="upper">3</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.0001</property>
+    <property name="page-increment">0.5</property>
+    <signal name="value-changed" handler="on_contrast_adjustment_value_changed" swapped="no"/>
+  </object>
   <object class="GtkFileFilter" id="filefilter1">
     <mime-types>
       <mime-type>.jpg</mime-type>
@@ -105,7 +112,7 @@
                   </packing>
                 </child>
                 <child>
-                  <!-- n-columns=2 n-rows=2 -->
+                  <!-- n-columns=2 n-rows=3 -->
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -182,6 +189,31 @@
                         <property name="top-attach">1</property>
                       </packing>
                     </child>
+                    <child>
+                      <object class="GtkButton" id="negative_button">
+                        <property name="label" translatable="yes">Negativo</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <signal name="clicked" handler="on_negative_button_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton">
+                        <property name="label" translatable="yes">inútil</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">2</property>
+                      </packing>
+                    </child>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -223,7 +255,7 @@
                   </packing>
                 </child>
                 <child>
-                  <!-- n-columns=3 n-rows=2 -->
+                  <!-- n-columns=3 n-rows=3 -->
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -239,22 +271,21 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">1</property>
+                        <property name="top-attach">0</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton" id="quantum">
-                        <property name="label" translatable="yes">Quantizar</property>
-                        <property name="name">quantum</property>
+                      <object class="GtkScale" id="brightness_scale">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="receives-default">True</property>
-                        <property name="margin-start">5</property>
-                        <property name="hexpand">True</property>
-                        <signal name="clicked" handler="on_quantum_clicked" swapped="no"/>
+                        <property name="adjustment">brightness_adjustment</property>
+                        <property name="lower-stepper-sensitivity">on</property>
+                        <property name="upper-stepper-sensitivity">on</property>
+                        <property name="fill-level">255</property>
+                        <property name="round-digits">1</property>
                       </object>
                       <packing>
-                        <property name="left-attach">2</property>
+                        <property name="left-attach">1</property>
                         <property name="top-attach">1</property>
                       </packing>
                     </child>
@@ -270,6 +301,33 @@
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="quantum">
+                        <property name="label" translatable="yes">Quantizar</property>
+                        <property name="name">quantum</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="margin-start">5</property>
+                        <property name="hexpand">True</property>
+                        <signal name="clicked" handler="on_quantum_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Ajuste de Brilho</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
                         <property name="top-attach">1</property>
                       </packing>
                     </child>
@@ -277,28 +335,28 @@
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">Brilho</property>
+                        <property name="label" translatable="yes">Ajuste de Constraste</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">0</property>
+                        <property name="top-attach">2</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkScale" id="brightness_scale">
+                      <object class="GtkScale" id="contrast_scale">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="adjustment">brightness_adjustment</property>
-                        <property name="lower-stepper-sensitivity">on</property>
-                        <property name="upper-stepper-sensitivity">on</property>
-                        <property name="fill-level">255</property>
-                        <property name="round-digits">1</property>
-                        <signal name="value-changed" handler="on_brightness_scale_value_changed" swapped="no"/>
+                        <property name="adjustment">contrast_adjustment</property>
+                        <property name="round-digits">4</property>
+                        <property name="digits">4</property>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">0</property>
+                        <property name="top-attach">2</property>
                       </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                     <child>
                       <placeholder/>
