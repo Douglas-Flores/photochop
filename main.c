@@ -17,6 +17,7 @@ typedef struct {
     int preview_width;
     int preview_height;
     float aspect_ratio;
+    int greyed;
 } Image;
 
 // Componentes GTK
@@ -373,27 +374,27 @@ void on_negative_clicked() {
     printf("\n[OPERATION] Negative");
 }
 
-void on_greyscale_clicked() {
+void greyscale(Image *img) {
     if (isImageLoaded == false)
         return NULL;
 
     int rowstride, n_channels;
     guchar *pixels, *p_row, *p;
     
-    n_channels = gdk_pixbuf_get_n_channels(manipulated_img.pixels);
+    n_channels = gdk_pixbuf_get_n_channels(img->pixels);
 
-    g_assert (gdk_pixbuf_get_colorspace (manipulated_img.pixels) == GDK_COLORSPACE_RGB);
-    g_assert (gdk_pixbuf_get_bits_per_sample (manipulated_img.pixels) == 8);
+    g_assert (gdk_pixbuf_get_colorspace (img->pixels) == GDK_COLORSPACE_RGB);
+    g_assert (gdk_pixbuf_get_bits_per_sample (img->pixels) == 8);
     g_assert (n_channels == 3);
 
-    rowstride = gdk_pixbuf_get_rowstride (manipulated_img.pixels);
-    pixels = gdk_pixbuf_get_pixels (manipulated_img.pixels);
+    rowstride = gdk_pixbuf_get_rowstride (img->pixels);
+    pixels = gdk_pixbuf_get_pixels (img->pixels);
 
-    for (int y = 0; y < manipulated_img.height; y++) {
+    for (int y = 0; y < img->height; y++) {
         // definindo ponteiro para a linha a ser manipulada
         p_row = pixels + y * rowstride;
         // percorrendo a linha
-        for (int x = 0; x < manipulated_img.width; x++){
+        for (int x = 0; x < img->width; x++){
             p = p_row + x * n_channels;
             guchar l = 0.299*p[0] + 0.587*p[1] + 0.114*p[2];
             p[0] = l;
@@ -402,8 +403,12 @@ void on_greyscale_clicked() {
         }
     }
 
+    img->greyed = 1;
     update_preview_image();
+}
 
+void on_greyscale_clicked() {
+    greyscale(&manipulated_img);
     printf("\n[OPERATION] Greyscale Filter");
 }
 
@@ -515,25 +520,19 @@ gboolean draw_callback (GtkWidget *widget, cairo_t *cr, gpointer data) {
     return FALSE;
 }
 
-void on_histogram_button_clicked() {
-    if (isImageLoaded == false)
-        return NULL;
-
-    canvas = GTK_WIDGET(gtk_builder_get_object(builder, "histogram_draw"));
-
+void compute_histogram(Image *img, int *hist) {
     int rowstride, n_channels;
     guchar *pixels, *p_row, *p;
     for (int i = 0; i < 256; i++)
-        histogram_data[i] = 0;
+        hist[i] = 0;
     
-    n_channels = gdk_pixbuf_get_n_channels(original_img.pixels);
+    n_channels = gdk_pixbuf_get_n_channels(img->pixels);
 
-    g_assert (gdk_pixbuf_get_colorspace (original_img.pixels) == GDK_COLORSPACE_RGB);
-    g_assert (gdk_pixbuf_get_bits_per_sample (original_img.pixels) == 8);
-    // reseting manipulated image
-    manipulated_img.pixels = gdk_pixbuf_new_from_file(original_img.name, NULL);
+    g_assert (gdk_pixbuf_get_colorspace (img->pixels) == GDK_COLORSPACE_RGB);
+    g_assert (gdk_pixbuf_get_bits_per_sample (img->pixels) == 8);
     if (n_channels == 3){
-        on_greyscale_clicked();
+        if (img->greyed != 1)
+            greyscale(img);
         g_assert (n_channels == 3);
     }
     else if (n_channels == 1)
@@ -543,14 +542,14 @@ void on_histogram_button_clicked() {
         return NULL;
     }
 
-    rowstride = gdk_pixbuf_get_rowstride (manipulated_img.pixels);
-    pixels = gdk_pixbuf_get_pixels (manipulated_img.pixels);
+    rowstride = gdk_pixbuf_get_rowstride (img->pixels);
+    pixels = gdk_pixbuf_get_pixels (img->pixels);
 
-    for (int y = 0; y < manipulated_img.height; y++) {
+    for (int y = 0; y < img->height; y++) {
         // definindo ponteiro para a linha a ser manipulada
         p_row = pixels + y * rowstride;
         // percorrendo a linha
-        for (int x = 0; x < manipulated_img.width; x++){
+        for (int x = 0; x < img->width; x++){
             p = p_row + x * n_channels;
             int index = 0;
 
@@ -561,15 +560,60 @@ void on_histogram_button_clicked() {
             else
                 index = p[0];
 
-            histogram_data[index]++;
+            hist[index]++;
         }
     }
+}
 
+void on_histogram_button_clicked() {
+    if (isImageLoaded == false)
+        return NULL;
+
+    for (int i = 0; i < 256; i++)
+        histogram_data[i] = 0;
+
+    compute_histogram(&manipulated_img, histogram_data);
+
+    canvas = GTK_WIDGET(gtk_builder_get_object(builder, "histogram_draw"));
     gtk_widget_show_all(window_histogram);
-
-    printf("\n[FUNCTION] Show Histogram");
-
     g_signal_connect (G_OBJECT(canvas), "draw", G_CALLBACK(draw_callback), NULL);
+    printf("\n[FUNCTION] Show Histogram");
+}
+
+void on_histogram_equalize_button_clicked() {
+    int histogram[256];
+    int hist_cum[256];
+    for (int i = 0; i < 256; i++) hist_cum[i] = 0;
+    float alpha = 255.0 / (manipulated_img.height * manipulated_img.width);
+
+    compute_histogram(&manipulated_img, histogram);
+    hist_cum[0] = alpha * histogram[0];
+    
+    for (int i = 1; i < 256; i++)
+        hist_cum[i] = hist_cum[i-1] + alpha * histogram[i];
+    
+    int rowstride, n_channels;
+    guchar *pixels, *row, *p;
+    n_channels = gdk_pixbuf_get_n_channels(manipulated_img.pixels);
+    rowstride = gdk_pixbuf_get_rowstride(manipulated_img.pixels);
+    pixels = gdk_pixbuf_get_pixels(manipulated_img.pixels);
+    for (int x = 0; x < manipulated_img.width; x++) {
+        for (int y = 0; y < manipulated_img.height; y++) {
+            row = pixels + y * rowstride;
+            p = row + x * n_channels;
+            p[0] = (uint8_t) hist_cum[p[0]];
+            if (n_channels == 3) {
+                p[1] = p[0];
+                p[2] = p[0];
+            }
+            if (p[0] != p[1] || p[0] != p[2])
+                printf("\n Mana mana");
+        }
+        
+    }
+    update_preview_image();
+    printf("\n[OPERATION] Histogram Equalization");
+    
 }
 
 void on_save_image_clicked() {
@@ -582,7 +626,7 @@ void on_save_image_clicked() {
 }
 
 void on_histogram_window_destroy() {
-    gtk_widget_destroy(canvas);
+    gtk_widget_destroy(window_histogram);
 }
 
 void on_clock_wise_clicked() {
@@ -971,7 +1015,7 @@ void convolution(float kernel[3][3]) {
     g_assert (gdk_pixbuf_get_colorspace (original_img.pixels) == GDK_COLORSPACE_RGB);
     g_assert (gdk_pixbuf_get_bits_per_sample (original_img.pixels) == 8);
     if (n_channels == 3){
-        on_greyscale_clicked();
+        greyscale(&manipulated_img);
         g_assert (n_channels == 3);
     }
     else if (n_channels == 1)
@@ -1215,6 +1259,7 @@ int main(int argc, char **argv) {
         "on_high_pass_button_clicked", G_CALLBACK(on_high_pass_button_clicked),
         "on_sobel_hx_button_clicked", G_CALLBACK(on_sobel_hx_button_clicked),
         "on_sobel_hy_button_clicked", G_CALLBACK(on_sobel_hy_button_clicked),
+        "on_histogram_equalize_button_clicked", G_CALLBACK(on_histogram_equalize_button_clicked),
         NULL
     );
     gtk_builder_connect_signals(builder, NULL);

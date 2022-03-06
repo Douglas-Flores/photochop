@@ -367,11 +367,12 @@
                         <property name="can-focus">False</property>
                         <property name="column-homogeneous">True</property>
                         <child>
-                          <object class="GtkButton">
+                          <object class="GtkButton" id="zoom_in_button">
                             <property name="label" translatable="yes">+ zoom in</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <signal name="clicked" handler="on_zoom_in_button_clicked" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">0</property>
@@ -379,11 +380,12 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkButton">
+                          <object class="GtkButton" id="zoom_out_button">
                             <property name="label" translatable="yes">- zoom out</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <signal name="clicked" handler="on_zoom_out_button_clicked" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
@@ -402,11 +404,12 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <child>
-                          <object class="GtkButton">
+                          <object class="GtkButton" id="clock_wise_button">
                             <property name="label" translatable="yes">90º Horário</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <signal name="clicked" handler="on_clock_wise_button_clicked" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">0</property>
@@ -414,11 +417,12 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkButton">
+                          <object class="GtkButton" id="counterclock_wise_button">
                             <property name="label" translatable="yes">90º Anti-Horário</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <signal name="clicked" handler="on_counterclock_wise_button_clicked" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
@@ -467,11 +471,12 @@
                         <property name="can-focus">False</property>
                         <property name="column-homogeneous">True</property>
                         <child>
-                          <object class="GtkButton">
+                          <object class="GtkButton" id="gaussian_button">
                             <property name="label" translatable="yes">Gaussiano</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <signal name="clicked" handler="on_gaussian_button_clicked" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">0</property>
@@ -479,11 +484,12 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkButton">
+                          <object class="GtkButton" id="laplacian_button">
                             <property name="label" translatable="yes">Laplaciano</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <signal name="clicked" handler="on_laplacian_button_clicked" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
@@ -491,11 +497,12 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkButton">
+                          <object class="GtkButton" id="prewitt_hx_button">
                             <property name="label" translatable="yes">Prewitt Hx</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <signal name="clicked" handler="on_prewitt_hx_button_clicked" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">2</property>
@@ -503,11 +510,12 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkButton">
+                          <object class="GtkButton" id="prewitt_hy_button">
                             <property name="label" translatable="yes">Prewitt Hy</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <signal name="clicked" handler="on_prewitt_hy_button_clicked" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">3</property>
@@ -515,11 +523,12 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkButton">
+                          <object class="GtkButton" id="high_pass_button">
                             <property name="label" translatable="yes">Passa Altas</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <signal name="clicked" handler="on_high_pass_button_clicked" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">0</property>
@@ -527,11 +536,12 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkButton">
+                          <object class="GtkButton" id="sobel_hx_button">
                             <property name="label" translatable="yes">Sobel Hx</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <signal name="clicked" handler="on_sobel_hx_button_clicked" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
@@ -539,11 +549,12 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkButton">
+                          <object class="GtkButton" id="sobel_hy_button">
                             <property name="label" translatable="yes">Sobel Hy</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <signal name="clicked" handler="on_sobel_hy_button_clicked" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">2</property>
