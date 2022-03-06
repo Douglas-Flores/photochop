@@ -600,9 +600,6 @@ void on_histogram_button_clicked() {
         return NULL;
 
     compute_histogram(&manipulated_img, histogram_data);
-    for (int i = 1; i < 256; i++){
-        printf("\n%d", histogram_data[i]);
-    }
 
     canvas = GTK_WIDGET(gtk_builder_get_object(builder, "histogram_draw"));
     gtk_widget_show_all(window_histogram);
@@ -975,63 +972,8 @@ void on_zoom_in_button_clicked() {
             }
         }
     }
-    /*
-    guchar* p_ret[2][2];
-    buf_y = 0;
-    buf_x = 0;
-    for (int y = 0; y < manipulated_img.height; y+=2) {
-        buffer_row = buffer_pixels + buf_y * buffer_rowstride;
-        // loop de redução
-        for (int x = 0; x < manipulated_img.width; x+=2){
-            int square_height = 1;
-            int square_width = 1;
-            
-            row = pixels + y * rowstride;
-
-            p = row + x * n_channels;
-            
-            p_ret[0][0] = row + x * n_channels;
-            if (row + (x+1) * n_channels){
-                p_ret[0][1] = row + (x+1) * n_channels;
-                square_width = 2;
-            }
-
-            if (pixels + (y+1) * rowstride) {
-                square_height = 2;
-                row = pixels + (y+1) * rowstride;
-                p_ret[1][0] = row + x * n_channels;
-                if (row + (x+1) * n_channels)
-                    p_ret[1][1] = row + (x+1) * n_channels;
-            }
-            
-            buffer_pixel = buffer_row + buf_x * n_channels;
-            
-            int R = 0, G = 0, B = 0;
-            
-            for (int i = 0; i < square_height; i++) {
-                for (int j = 0; j < square_width; j++) {
-                    p = p_ret[i][j];
-                    R += p[0];
-                    if (n_channels == 3) {
-                        G += p[1];
-                        B += p[2];
-                    }
-                }
-            }
-            
-            buffer_pixel[0] = (uint8_t) (R / 4);
-            if (n_channels == 3) {
-                buffer_pixel[1] = (uint8_t) (G / 4);
-                buffer_pixel[2] = (uint8_t) (B / 4);
-            }
-
-            buf_x++;
-        }
-        buf_x = 0;
-        buf_y++;
-    }*/
+    
     manipulated_img = buffer_img;
-    printf("\n width: %d \n height: %d\n aspect_ratio: %.2f", manipulated_img.width, manipulated_img.height, manipulated_img.aspect_ratio);
     update_preview_image();
     printf("\n[OPERATION] Zoom In");
 }
@@ -1041,10 +983,11 @@ void convolution(float kernel[3][3]) {
         return NULL;
 
     int rowstride, n_channels;
-    guchar *pixels, *p_row, *p;
+    guchar *pixels;
     n_channels = gdk_pixbuf_get_n_channels(original_img.pixels);
     g_assert (gdk_pixbuf_get_colorspace (original_img.pixels) == GDK_COLORSPACE_RGB);
     g_assert (gdk_pixbuf_get_bits_per_sample (original_img.pixels) == 8);
+
     if (n_channels == 3){
         greyscale(&manipulated_img);
         g_assert (n_channels == 3);
@@ -1075,13 +1018,10 @@ void convolution(float kernel[3][3]) {
 
     for (int y = 1; y < manipulated_img.height-1; y++) {
         // definindo ponteiro para a linha a ser manipulada
-        p_row = pixels + y * rowstride;
         buffer_row = buffer_pixels + y * buffer_rowstride;
         // percorrendo a linha
         for (int x = 1; x < manipulated_img.width-1; x++){
-            p = p_row + x * n_channels;
             buffer_p = buffer_row + x * n_channels;
-
             // building the matrix -------------------------------------------------
             uint8_t neighborhood[3][3];
             for (int _y = 0; _y < 3; _y++) {
