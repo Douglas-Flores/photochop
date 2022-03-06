@@ -121,6 +121,7 @@ void on_image_picker_file_set(GtkFileChooserButton *f) {
     manipulated_img.aspect_ratio = (float)manipulated_img.width / (float)manipulated_img.height;
     manipulated_img.preview_width = WINDOW_WIDTH;
     manipulated_img.preview_height = original_img.preview_width / original_img.aspect_ratio;
+    manipulated_img.greyed = 0;
     
     //preview_pixbuf = gdk_pixbuf_scale_simple(preview_pixbuf, original_img.preview_width, original_img.preview_height, GDK_INTERP_BILINEAR);
 
@@ -169,7 +170,6 @@ void on_mirror_horizontal_clicked() {
     }
 
     update_preview_image();
-
     printf("\n[OPERATION] Horizontal Mirror");
 }
 
@@ -217,7 +217,6 @@ void on_mirror_vertical_clicked() {
     }
 
     update_preview_image();
-
     printf("\n[OPERATION] Vertical Mirror");
 }
 
@@ -280,7 +279,6 @@ void on_brigthness_change() {
     }
 
     update_preview_image();
-
     printf("\n[OPERATION] Brightness");
 }
 
@@ -337,7 +335,6 @@ void on_contrast_change() {
     }
 
     update_preview_image();
-
     printf("\n[OPERATION] Contrast");
 }
 
@@ -370,7 +367,6 @@ void on_negative_clicked() {
     }
 
     update_preview_image();
-
     printf("\n[OPERATION] Negative");
 }
 
@@ -571,6 +567,10 @@ void on_histogram_button_clicked() {
         return NULL;
 
     compute_histogram(&manipulated_img, histogram_data);
+    for (int i = 1; i < 256; i++){
+        printf("\n%d", histogram_data[i]);
+        //hist_cum[i] = hist_cum[i-1] + alpha * histogram[i];
+    }
 
     canvas = GTK_WIDGET(gtk_builder_get_object(builder, "histogram_draw"));
     gtk_widget_show_all(window_histogram);
@@ -587,31 +587,32 @@ void on_histogram_equalize_button_clicked() {
     compute_histogram(&manipulated_img, histogram);
     hist_cum[0] = alpha * histogram[0];
     
-    for (int i = 1; i < 256; i++)
+    for (int i = 1; i < 256; i++){
+        printf("\n%d", histogram[i]);
         hist_cum[i] = hist_cum[i-1] + alpha * histogram[i];
+    }
     
     int rowstride, n_channels;
     guchar *pixels, *row, *p;
+
     n_channels = gdk_pixbuf_get_n_channels(manipulated_img.pixels);
     rowstride = gdk_pixbuf_get_rowstride(manipulated_img.pixels);
     pixels = gdk_pixbuf_get_pixels(manipulated_img.pixels);
-    for (int x = 0; x < manipulated_img.width; x++) {
-        for (int y = 0; y < manipulated_img.height; y++) {
-            row = pixels + y * rowstride;
+    
+    for (int y = 0; y < manipulated_img.height; y++) {
+        row = pixels + y * rowstride;
+        for (int x = 0; x < manipulated_img.width; x++) {
             p = row + x * n_channels;
             p[0] = (uint8_t) hist_cum[p[0]];
             if (n_channels == 3) {
                 p[1] = p[0];
                 p[2] = p[0];
             }
-            if (p[0] != p[1] || p[0] != p[2])
-                printf("\n Mana mana");
-        }
-        
+        }   
     }
+
     update_preview_image();
     printf("\n[OPERATION] Histogram Equalization");
-    
 }
 
 void on_save_image_clicked() {
