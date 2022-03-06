@@ -523,20 +523,21 @@ gboolean draw_callback (GtkWidget *widget, cairo_t *cr, gpointer data) {
 void compute_histogram(Image *img, int *hist) {
     int rowstride, n_channels;
     guchar *pixels, *p_row, *p;
-    for (int i = 0; i < 256; i++)
-        hist[i] = 0;
+    
+    // Inicializando array do histograma
+    for (int i = 0; i < 256; i++) hist[i] = 0;
     
     n_channels = gdk_pixbuf_get_n_channels(img->pixels);
-
     g_assert (gdk_pixbuf_get_colorspace (img->pixels) == GDK_COLORSPACE_RGB);
     g_assert (gdk_pixbuf_get_bits_per_sample (img->pixels) == 8);
+    
     if (n_channels == 3){
-        if (img->greyed != 1)
-            greyscale(img);
+        if (img->greyed != 1) greyscale(img);
         g_assert (n_channels == 3);
     }
-    else if (n_channels == 1)
+    else if (n_channels == 1) {
         g_assert (n_channels == 1);
+    }
     else {
         printf("\n[ERROR] Cannot read number of channels from image");
         return NULL;
@@ -568,9 +569,6 @@ void compute_histogram(Image *img, int *hist) {
 void on_histogram_button_clicked() {
     if (isImageLoaded == false)
         return NULL;
-
-    for (int i = 0; i < 256; i++)
-        histogram_data[i] = 0;
 
     compute_histogram(&manipulated_img, histogram_data);
 
