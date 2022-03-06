@@ -39,6 +39,18 @@ int histogram_data[256];
 int brightness_level = 0;
 float contrast_level = 1;
 
+int convolution_function(float kernel[3][3], uint8_t neighborhood[3][3]) {
+    float output = 0;
+    
+    for (int y = 0; y < 3; y++) {
+        for (int x = 0; x < 3; x++) {
+            output += kernel[y][x] * neighborhood[2-y][2-x];
+        }
+    }
+
+    return (int) output;
+}
+
 void close_files(){
     if (isImageLoaded == true) {
         fclose(original_img.file);
@@ -686,7 +698,6 @@ void on_counter_clock_wise_button_clicked() {
         }
     }
     manipulated_img = buffer_img;
-    printf("\n width: %d \n height: %d\n aspect_ratio: %.2f", manipulated_img.width, manipulated_img.height, manipulated_img.aspect_ratio);
     update_preview_image();
     printf("\n[OPERATION] Counterclockwise Rotation");
 }
@@ -699,31 +710,220 @@ void on_zoom_out_button_clicked() {
     printf("\n[OPERATION] Zoom Out");
 }
 
+void convolution(float kernel[3][3]) {
+    if (isImageLoaded == false)
+        return NULL;
+
+    int rowstride, n_channels;
+    guchar *pixels, *p_row, *p;
+    n_channels = gdk_pixbuf_get_n_channels(original_img.pixels);
+    g_assert (gdk_pixbuf_get_colorspace (original_img.pixels) == GDK_COLORSPACE_RGB);
+    g_assert (gdk_pixbuf_get_bits_per_sample (original_img.pixels) == 8);
+    if (n_channels == 3){
+        on_greyscale_clicked();
+        g_assert (n_channels == 3);
+    }
+    else if (n_channels == 1)
+        g_assert (n_channels == 1);
+    else {
+        printf("\n[ERROR] Cannot read number of channels from image");
+        return NULL;
+    }
+    rowstride = gdk_pixbuf_get_rowstride (manipulated_img.pixels);
+    pixels = gdk_pixbuf_get_pixels (manipulated_img.pixels);
+
+    // preparando o buffer ---------------------
+    buffer_img = manipulated_img;
+    buffer_img.pixels = gdk_pixbuf_new(
+        gdk_pixbuf_get_colorspace (manipulated_img.pixels),
+        false,
+        8,
+        buffer_img.width,
+        buffer_img.height
+    );
+    int buffer_rowstride;
+    guchar *buffer_pixels, *buffer_row, *buffer_p;
+    buffer_rowstride = gdk_pixbuf_get_rowstride(buffer_img.pixels);
+    buffer_pixels = gdk_pixbuf_get_pixels(buffer_img.pixels);
+    // -----------------------------------------
+
+    for (int y = 1; y < manipulated_img.height-1; y++) {
+        // definindo ponteiro para a linha a ser manipulada
+        p_row = pixels + y * rowstride;
+        buffer_row = buffer_pixels + y * buffer_rowstride;
+        // percorrendo a linha
+        for (int x = 1; x < manipulated_img.width-1; x++){
+            p = p_row + x * n_channels;
+            buffer_p = buffer_row + x * n_channels;
+
+            // building the matrix -------------------------------------------------
+            uint8_t neighborhood[3][3];
+            for (int _y = 0; _y < 3; _y++) {
+                guchar *p_newrow = pixels + (y - (1 - _y)) * rowstride;
+                for (int _x = 0; _x < 3; _x++) {
+                    neighborhood[_y][_x] = (p_newrow + (x - (1 - _x)) * n_channels)[0];
+                }
+            }
+            //----------------------------------------------------------------------
+
+            // Aplying Convolution
+            int pixel_value = convolution_function(kernel, neighborhood);
+
+            if (n_channels == 1) {
+                if (pixel_value > 255)
+                    buffer_p[0] = (uint8_t) 255;
+                else if (pixel_value < 0)
+                    buffer_p[0] = (uint8_t) 0;
+                else
+                    buffer_p[0] = (uint8_t) pixel_value;
+            }
+            
+            else if (n_channels == 3) {
+                if (pixel_value > 255)
+                    buffer_p[0] = (uint8_t) 255;
+                else if (pixel_value < 0)
+                    buffer_p[0] = (uint8_t) 0;
+                else
+                    buffer_p[0] = (uint8_t) pixel_value;
+                
+                if (pixel_value > 255)
+                    buffer_p[1] = (uint8_t) 255;
+                else if (pixel_value < 0)
+                    buffer_p[1] = (uint8_t) 0;
+                else
+                    buffer_p[1] = (uint8_t) pixel_value;
+                
+                if (pixel_value > 255)
+                    buffer_p[2] = (uint8_t) 255;
+                else if (pixel_value < 0)
+                    buffer_p[2] = (uint8_t) 0;
+                else
+                    buffer_p[2] = (uint8_t) pixel_value;
+            }
+        }
+    }
+
+    manipulated_img = buffer_img;
+    update_preview_image();
+}
+
 void on_gaussian_button_clicked() {
+    float kernel[3][3];
+
+    kernel[0][0] = 0.0625;
+    kernel[0][1] = 0.125;
+    kernel[0][2] = 0.0625;
+    kernel[1][0] = 0.125;
+    kernel[1][1] = 0.25;
+    kernel[1][2] = 0.125;
+    kernel[2][0] = 0.0625;
+    kernel[2][1] = 0.125;
+    kernel[2][2] = 0.0625;
+
+    convolution(kernel);
+
     printf("\n[OPERATION] Gaussian Filter");
 }
 
 void on_laplacian_button_clicked() {
+    float kernel[3][3];
+
+    kernel[0][0] = 0;
+    kernel[0][1] = -1;
+    kernel[0][2] = 0;
+    kernel[1][0] = -1;
+    kernel[1][1] = 4;
+    kernel[1][2] = -1;
+    kernel[2][0] = 0;
+    kernel[2][1] = -1;
+    kernel[2][2] = 0;
+
+    convolution(kernel);
     printf("\n[OPERATION] Laplacian Filter");
 }
 
 void on_prewitt_hx_button_clicked() {
+    float kernel[3][3];
+
+    kernel[0][0] = -1;
+    kernel[0][1] = 0;
+    kernel[0][2] = 1;
+    kernel[1][0] = -1;
+    kernel[1][1] = 0;
+    kernel[1][2] = 1;
+    kernel[2][0] = -1;
+    kernel[2][1] = 0;
+    kernel[2][2] = 1;
+
+    convolution(kernel);
     printf("\n[OPERATION] Prewitt Hx");
 }
 
 void on_prewitt_hy_button_clicked() {
+    float kernel[3][3];
+
+    kernel[0][0] = -1;
+    kernel[0][1] = -1;
+    kernel[0][2] = -1;
+    kernel[1][0] = 0;
+    kernel[1][1] = 0;
+    kernel[1][2] = 0;
+    kernel[2][0] = 1;
+    kernel[2][1] = 1;
+    kernel[2][2] = 1;
+
+    convolution(kernel);
     printf("\n[OPERATION] Prewitt Hy");
 }
 
 void on_high_pass_button_clicked() {
+    float kernel[3][3];
+
+    kernel[0][0] = -1;
+    kernel[0][1] = -1;
+    kernel[0][2] = -1;
+    kernel[1][0] = -1;
+    kernel[1][1] = 8;
+    kernel[1][2] = -1;
+    kernel[2][0] = -1;
+    kernel[2][1] = -1;
+    kernel[2][2] = -1;
+
+    convolution(kernel);
     printf("\n[OPERATION] High Pass");
 }
 
 void on_sobel_hx_button_clicked() {
+    float kernel[3][3];
+
+    kernel[0][0] = -1;
+    kernel[0][1] = 0;
+    kernel[0][2] = 1;
+    kernel[1][0] = -2;
+    kernel[1][1] = 0;
+    kernel[1][2] = 2;
+    kernel[2][0] = -1;
+    kernel[2][1] = 0;
+    kernel[2][2] = 1;
+
+    convolution(kernel);
     printf("\n[OPERATION] Sobel Hx");
 }
 
 void on_sobel_hy_button_clicked() {
+    float kernel[3][3];
+
+    kernel[0][0] = -1;
+    kernel[0][1] = -2;
+    kernel[0][2] = -1;
+    kernel[1][0] = 0;
+    kernel[1][1] = 0;
+    kernel[1][2] = 0;
+    kernel[2][0] = 1;
+    kernel[2][1] = 2;
+    kernel[2][2] = 1;
+
+    convolution(kernel);
     printf("\n[OPERATION] Sobel Hx");
 }
 
