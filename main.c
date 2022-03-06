@@ -83,7 +83,7 @@ void copy_image() {
 
 void update_preview_image() {
     preview_pixbuf = gdk_pixbuf_copy(manipulated_img.pixels); 
-    preview_pixbuf = gdk_pixbuf_scale_simple(preview_pixbuf, manipulated_img.preview_width, manipulated_img.preview_height, GDK_INTERP_BILINEAR);
+    //preview_pixbuf = gdk_pixbuf_scale_simple(preview_pixbuf, manipulated_img.preview_width, manipulated_img.preview_height, GDK_INTERP_BILINEAR);
     gtk_image_set_from_pixbuf(GTK_IMAGE(manipulated_img.widget), preview_pixbuf);
 }
 
@@ -121,7 +121,7 @@ void on_image_picker_file_set(GtkFileChooserButton *f) {
     manipulated_img.preview_width = WINDOW_WIDTH;
     manipulated_img.preview_height = original_img.preview_width / original_img.aspect_ratio;
     
-    preview_pixbuf = gdk_pixbuf_scale_simple(preview_pixbuf, original_img.preview_width, original_img.preview_height, GDK_INTERP_BILINEAR);
+    //preview_pixbuf = gdk_pixbuf_scale_simple(preview_pixbuf, original_img.preview_width, original_img.preview_height, GDK_INTERP_BILINEAR);
 
     gtk_image_set_from_pixbuf(GTK_IMAGE(original_img.widget), preview_pixbuf);
     gtk_image_set_from_pixbuf(GTK_IMAGE(manipulated_img.widget), preview_pixbuf);
@@ -702,12 +702,263 @@ void on_counter_clock_wise_button_clicked() {
     printf("\n[OPERATION] Counterclockwise Rotation");
 }
 
-void on_zoom_in_button_clicked() {
-    printf("\n[OPERATION] Zoom In");
+void on_zoom_out_button_clicked() {
+    if (isImageLoaded == false)
+        return NULL;
+    
+    // preparando o buffer ---------------------
+    buffer_img = manipulated_img;
+    buffer_img.height = ceil(manipulated_img.height / 2);
+    buffer_img.width = ceil(manipulated_img.width / 2);
+    buffer_img.preview_height = buffer_img.preview_width / buffer_img.aspect_ratio;
+    buffer_img.pixels = gdk_pixbuf_new(
+        gdk_pixbuf_get_colorspace (manipulated_img.pixels),
+        false,
+        8,
+        buffer_img.width,
+        buffer_img.height
+    );
+    // -----------------------------------------
+
+    // preparando acesso ao pixels -------------------------------------------------------
+    int rowstride, n_channels;
+    guchar *pixels, *row, *p;
+    n_channels = gdk_pixbuf_get_n_channels(manipulated_img.pixels);
+    g_assert (gdk_pixbuf_get_colorspace (manipulated_img.pixels) == GDK_COLORSPACE_RGB);
+    g_assert (gdk_pixbuf_get_bits_per_sample (manipulated_img.pixels) == 8);
+    g_assert (n_channels == 3);
+    rowstride = gdk_pixbuf_get_rowstride (manipulated_img.pixels);
+    pixels = gdk_pixbuf_get_pixels (manipulated_img.pixels);
+    // ----------------------------------------------------------------------------------
+
+    // preparando acesso ao buffer ------------------------------------------------------
+    int buffer_rowstride;
+    guchar *buffer_pixels, *buffer_row, *buffer_pixel;
+    g_assert (gdk_pixbuf_get_colorspace (buffer_img.pixels) == GDK_COLORSPACE_RGB);
+    g_assert (gdk_pixbuf_get_bits_per_sample (buffer_img.pixels) == 8);
+    g_assert (n_channels == 3);
+    buffer_rowstride = gdk_pixbuf_get_rowstride (buffer_img.pixels);
+    buffer_pixels = gdk_pixbuf_get_pixels (buffer_img.pixels);
+    // ----------------------------------------------------------------------------------
+
+    guchar* p_ret[2][2];
+    int buf_y = 0;
+    int buf_x = 0;
+    for (int y = 0; y < manipulated_img.height; y+=2) {
+        buffer_row = buffer_pixels + buf_y * buffer_rowstride;
+        // loop de redução
+        for (int x = 0; x < manipulated_img.width; x+=2){
+            int square_height = 1;
+            int square_width = 1;
+            
+            row = pixels + y * rowstride;
+
+            p = row + x * n_channels;
+            
+            p_ret[0][0] = row + x * n_channels;
+            if (row + (x+1) * n_channels){
+                p_ret[0][1] = row + (x+1) * n_channels;
+                square_width = 2;
+            }
+
+            if (pixels + (y+1) * rowstride) {
+                square_height = 2;
+                row = pixels + (y+1) * rowstride;
+                p_ret[1][0] = row + x * n_channels;
+                if (row + (x+1) * n_channels)
+                    p_ret[1][1] = row + (x+1) * n_channels;
+            }
+            
+            buffer_pixel = buffer_row + buf_x * n_channels;
+            
+            int R = 0, G = 0, B = 0;
+            
+            for (int i = 0; i < square_height; i++) {
+                for (int j = 0; j < square_width; j++) {
+                    p = p_ret[i][j];
+                    R += p[0];
+                    if (n_channels == 3) {
+                        G += p[1];
+                        B += p[2];
+                    }
+                }
+            }
+            
+            buffer_pixel[0] = (uint8_t) (R / 4);
+            if (n_channels == 3) {
+                buffer_pixel[1] = (uint8_t) (G / 4);
+                buffer_pixel[2] = (uint8_t) (B / 4);
+            }
+
+            buf_x++;
+        }
+        buf_x = 0;
+        buf_y++;
+    }
+    manipulated_img = buffer_img;
+    printf("\n width: %d \n height: %d\n aspect_ratio: %.2f", manipulated_img.width, manipulated_img.height, manipulated_img.aspect_ratio);
+    update_preview_image();
+    printf("\n[OPERATION] Zoom Out");
 }
 
-void on_zoom_out_button_clicked() {
-    printf("\n[OPERATION] Zoom Out");
+void on_zoom_in_button_clicked() {
+    if (isImageLoaded == false)
+        return NULL;
+    
+    // preparando o buffer ---------------------
+    buffer_img = manipulated_img;
+    buffer_img.height = manipulated_img.height * 2;
+    buffer_img.width = manipulated_img.width * 2;
+    buffer_img.preview_height = buffer_img.preview_width / buffer_img.aspect_ratio;
+    buffer_img.pixels = gdk_pixbuf_new(
+        gdk_pixbuf_get_colorspace (manipulated_img.pixels),
+        false,
+        8,
+        buffer_img.width,
+        buffer_img.height
+    );
+    // -----------------------------------------
+
+    // preparando acesso ao pixels -------------------------------------------------------
+    int rowstride, n_channels;
+    guchar *pixels, *row, *p;
+    n_channels = gdk_pixbuf_get_n_channels(manipulated_img.pixels);
+    g_assert (gdk_pixbuf_get_colorspace (manipulated_img.pixels) == GDK_COLORSPACE_RGB);
+    g_assert (gdk_pixbuf_get_bits_per_sample (manipulated_img.pixels) == 8);
+    g_assert (n_channels == 3);
+    rowstride = gdk_pixbuf_get_rowstride (manipulated_img.pixels);
+    pixels = gdk_pixbuf_get_pixels (manipulated_img.pixels);
+    // ----------------------------------------------------------------------------------
+
+    // preparando acesso ao buffer ------------------------------------------------------
+    int buffer_rowstride;
+    guchar *buffer_pixels, *buffer_row, *buffer_pixel;
+    g_assert (gdk_pixbuf_get_colorspace (buffer_img.pixels) == GDK_COLORSPACE_RGB);
+    g_assert (gdk_pixbuf_get_bits_per_sample (buffer_img.pixels) == 8);
+    g_assert (n_channels == 3);
+    buffer_rowstride = gdk_pixbuf_get_rowstride (buffer_img.pixels);
+    buffer_pixels = gdk_pixbuf_get_pixels (buffer_img.pixels);
+    // ----------------------------------------------------------------------------------
+
+    // Passo 1: Espaçando os pixels -----------------------------------------------------
+    int buf_y = 0;
+    int buf_x = 0;
+    for (int y = 0; y < manipulated_img.height; y++) {
+        row = pixels + y * rowstride;
+        buffer_row = buffer_pixels + buf_y * buffer_rowstride;
+
+        for (int x = 0; x < manipulated_img.width; x++){
+            p = row + x * n_channels;
+            buffer_pixel = buffer_row + buf_x * n_channels;
+
+            buffer_pixel[0] = p[0];
+            if (n_channels == 3) {
+                buffer_pixel[1] = p[1];
+                buffer_pixel[2] = p[2];
+            }
+
+            buf_x += 2;
+        }
+        buf_x = 0;
+        buf_y += 2;
+    }
+    // ----------------------------------------------------------------------------------
+    // Passo 2: Preenchendo colunas -----------------------------------------------------
+    for (int y = 0; y < buffer_img.height; y+=2) {
+        buffer_row = buffer_pixels + y * buffer_rowstride;
+
+        for (int x = 1; x < buffer_img.width; x+=2){
+            guchar *prev, *next;
+            prev = buffer_row + (x-1) * n_channels;
+            buffer_pixel = buffer_row + x * n_channels;
+            next = buffer_row + (x+1) * n_channels;
+            
+            buffer_pixel[0] = (uint8_t) ((prev[0] + next[0]) / 2);
+            if (n_channels == 3) {
+                buffer_pixel[1] = (uint8_t) ((prev[1] + next[1]) / 2);
+                buffer_pixel[2] = (uint8_t) ((prev[2] + next[2]) / 2);
+            }
+        }
+    }
+    // ----------------------------------------------------------------------------------
+    // Passo 3: Preenchendo linhas ------------------------------------------------------
+    for (int y = 1; y < buffer_img.height; y+=2) {
+        guchar *prev_row = buffer_pixels + (y-1) * buffer_rowstride;
+        buffer_row = buffer_pixels + y * buffer_rowstride;
+        guchar *next_row = buffer_pixels + (y+1) * buffer_rowstride;
+
+        for (int x = 0; x < buffer_img.width; x++){
+            guchar *prev, *next;
+            prev = prev_row + x * n_channels;
+            buffer_pixel = buffer_row + x * n_channels;
+            next = next_row + x * n_channels;
+            
+            buffer_pixel[0] = (uint8_t) ((prev[0] + next[0]) / 2);
+            if (n_channels == 3) {
+                buffer_pixel[1] = (uint8_t) ((prev[1] + next[1]) / 2);
+                buffer_pixel[2] = (uint8_t) ((prev[2] + next[2]) / 2);
+            }
+        }
+    }
+    /*
+    guchar* p_ret[2][2];
+    buf_y = 0;
+    buf_x = 0;
+    for (int y = 0; y < manipulated_img.height; y+=2) {
+        buffer_row = buffer_pixels + buf_y * buffer_rowstride;
+        // loop de redução
+        for (int x = 0; x < manipulated_img.width; x+=2){
+            int square_height = 1;
+            int square_width = 1;
+            
+            row = pixels + y * rowstride;
+
+            p = row + x * n_channels;
+            
+            p_ret[0][0] = row + x * n_channels;
+            if (row + (x+1) * n_channels){
+                p_ret[0][1] = row + (x+1) * n_channels;
+                square_width = 2;
+            }
+
+            if (pixels + (y+1) * rowstride) {
+                square_height = 2;
+                row = pixels + (y+1) * rowstride;
+                p_ret[1][0] = row + x * n_channels;
+                if (row + (x+1) * n_channels)
+                    p_ret[1][1] = row + (x+1) * n_channels;
+            }
+            
+            buffer_pixel = buffer_row + buf_x * n_channels;
+            
+            int R = 0, G = 0, B = 0;
+            
+            for (int i = 0; i < square_height; i++) {
+                for (int j = 0; j < square_width; j++) {
+                    p = p_ret[i][j];
+                    R += p[0];
+                    if (n_channels == 3) {
+                        G += p[1];
+                        B += p[2];
+                    }
+                }
+            }
+            
+            buffer_pixel[0] = (uint8_t) (R / 4);
+            if (n_channels == 3) {
+                buffer_pixel[1] = (uint8_t) (G / 4);
+                buffer_pixel[2] = (uint8_t) (B / 4);
+            }
+
+            buf_x++;
+        }
+        buf_x = 0;
+        buf_y++;
+    }*/
+    manipulated_img = buffer_img;
+    printf("\n width: %d \n height: %d\n aspect_ratio: %.2f", manipulated_img.width, manipulated_img.height, manipulated_img.aspect_ratio);
+    update_preview_image();
+    printf("\n[OPERATION] Zoom In");
 }
 
 void convolution(float kernel[3][3]) {
