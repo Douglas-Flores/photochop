@@ -526,7 +526,41 @@ void compute_histogram(Image *img, int *hist) {
     n_channels = gdk_pixbuf_get_n_channels(img->pixels);
     g_assert (gdk_pixbuf_get_colorspace (img->pixels) == GDK_COLORSPACE_RGB);
     g_assert (gdk_pixbuf_get_bits_per_sample (img->pixels) == 8);
+
+    rowstride = gdk_pixbuf_get_rowstride (img->pixels);
+    pixels = gdk_pixbuf_get_pixels (img->pixels);
     
+    // preparando o buffer ---------------------
+    buffer_img = *img;
+    buffer_img.pixels = gdk_pixbuf_new(
+        gdk_pixbuf_get_colorspace(manipulated_img.pixels),
+        false,
+        8,
+        buffer_img.width,
+        buffer_img.height
+    );
+
+    int buffer_rowstride;
+    guchar *buffer_pixels, *buffer_row, *buffer_pixel;
+    g_assert (gdk_pixbuf_get_colorspace (buffer_img.pixels) == GDK_COLORSPACE_RGB);
+    g_assert (gdk_pixbuf_get_bits_per_sample (buffer_img.pixels) == 8);
+    g_assert (n_channels == 3);
+    buffer_rowstride = gdk_pixbuf_get_rowstride (buffer_img.pixels);
+    buffer_pixels = gdk_pixbuf_get_pixels (buffer_img.pixels);
+
+    for (int y = 0; y < buffer_img.height; y++) {
+        p_row = pixels + y * rowstride;
+        buffer_row = buffer_pixels + y * buffer_rowstride;
+        for (int x = 0; x < buffer_img.width; x++) {
+            p = p_row + x * n_channels;
+            buffer_pixel = buffer_row + x * n_channels;
+            buffer_pixel[0] = p[0];
+            buffer_pixel[1] = p[1];
+            buffer_pixel[2] = p[2];
+        }   
+    }
+    // -----------------------------------------
+
     if (n_channels == 3){
         if (img->greyed != 1) greyscale(img);
         g_assert (n_channels == 3);
@@ -539,14 +573,11 @@ void compute_histogram(Image *img, int *hist) {
         return NULL;
     }
 
-    rowstride = gdk_pixbuf_get_rowstride (img->pixels);
-    pixels = gdk_pixbuf_get_pixels (img->pixels);
-
     for (int y = 0; y < img->height; y++) {
         // definindo ponteiro para a linha a ser manipulada
         p_row = pixels + y * rowstride;
         // percorrendo a linha
-        for (int x = 0; x < img->width; x++){
+        for (int x = 0; x < img->width; x++) {
             p = p_row + x * n_channels;
             int index = 0;
 
@@ -560,6 +591,8 @@ void compute_histogram(Image *img, int *hist) {
             hist[index]++;
         }
     }
+
+    manipulated_img = buffer_img;
 }
 
 void on_histogram_button_clicked() {
@@ -569,7 +602,6 @@ void on_histogram_button_clicked() {
     compute_histogram(&manipulated_img, histogram_data);
     for (int i = 1; i < 256; i++){
         printf("\n%d", histogram_data[i]);
-        //hist_cum[i] = hist_cum[i-1] + alpha * histogram[i];
     }
 
     canvas = GTK_WIDGET(gtk_builder_get_object(builder, "histogram_draw"));
@@ -605,8 +637,8 @@ void on_histogram_equalize_button_clicked() {
             p = row + x * n_channels;
             p[0] = (uint8_t) hist_cum[p[0]];
             if (n_channels == 3) {
-                p[1] = p[0];
-                p[2] = p[0];
+                p[1] = (uint8_t) hist_cum[p[1]];
+                p[2] = (uint8_t) hist_cum[p[2]];
             }
         }   
     }
