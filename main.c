@@ -608,6 +608,9 @@ void on_histogram_button_clicked() {
 }
 
 void on_histogram_equalize_button_clicked() {
+    if (isImageLoaded == false)
+        return NULL;
+        
     int histogram[256];
     int hist_cum[256];
     for (int i = 0; i < 256; i++) hist_cum[i] = 0;
@@ -711,7 +714,6 @@ void on_clock_wise_clicked() {
         }
     }
     manipulated_img = buffer_img;
-    printf("\n width: %d \n height: %d\n aspect_ratio: %.2f", manipulated_img.width, manipulated_img.height, manipulated_img.aspect_ratio);
     update_preview_image();
     printf("\n[OPERATION] Clockwise Rotation");
 }
